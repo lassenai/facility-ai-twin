@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f3f6f8" />
+    <meta name="description" content="시설 과열, 센서 오류, 통신 단절에 대응하는 Agent와 로봇의 과정을 3D 디지털 트윈에서 체험하세요." />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <title>Facility AI Twin · 시설 이상 대응 시뮬레이터</title>
+  </head>
+  <body>
+    <a class="skip-link" href="#controls">시나리오 조작으로 이동</a>
+    <header class="masthead">
+      <a class="brand" href="./" aria-label="Facility AI Twin 처음으로">
+        <svg class="brand-mark" viewBox="0 0 40 40" fill="none" aria-hidden="true"><path d="M20 3 35 11.5v17L20 37 5 28.5v-17L20 3Z" stroke="currentColor" stroke-width="2.4"/><path d="m5 11.5 15 9 15-9M20 20.5V37M12 7.5l15 9V33" stroke="currentColor" stroke-width="2.4"/></svg>
+        <span>Facility AI Twin<small>시설 이상 대응 시뮬레이터</small></span>
+      </a>
+      <div class="masthead-actions">
+        <span class="simulation-badge"><i></i> 브라우저 시뮬레이션</span>
+        <button id="help" class="quiet-button" data-icon="help">데모 안내</button>
+        <button id="report" class="outline-button" data-icon="report" disabled>대응 리포트</button>
+      </div>
+    </header>
+    <main>
+      <section class="mission-heading">
+        <div><p class="location-label">시설 관리 / 자율 점검</p><h1>서관 지하 설비실</h1><p class="mission-description">이상을 감지하고, 판단하고, 행동하는 과정을 직접 확인하세요.</p></div>
+        <div class="facility-health" id="facilityHealth"><span class="health-dot"></span><div><strong id="healthTitle">정상 운영</strong><span id="healthDetail">5개 설비의 상태를 관측 중</span></div></div>
+      </section>
+      <section class="control-bar" id="controls" aria-label="시뮬레이션 설정">
+        <div class="scenario-picker" role="group" aria-label="이상 시나리오">
+          <button data-scenario="heat" aria-pressed="true" data-icon="heat">설비 과열</button>
+          <button data-scenario="sensor" aria-pressed="false" data-icon="sensor">센서 오류</button>
+          <button data-scenario="link" aria-pressed="false" data-icon="link">통신 단절</button>
+        </div>
+        <div class="run-options">
+          <label class="agent-picker"><span class="sr-only">Agent 실행 모드</span><select id="agentMode"><option value="rules">Agent · 규칙 기반</option><option value="codex">Codex · 로컬 CLI</option><option value="hermes">Hermes · 로컬 CLI</option></select></label>
+          <label class="mode-picker"><span class="sr-only">로봇 제어 모드</span><select id="robotMode"><option value="light">경량 자율 제어</option><option value="precise">Go1 보행정책 · 정밀</option></select></label>
+          <label class="speed-picker"><span class="sr-only">시뮬레이션 속도</span><select id="speed"><option value="1">1×</option><option value="2" selected>2×</option><option value="4">4×</option></select></label>
+          <button id="pause" class="icon-button" aria-label="시뮬레이션 일시정지" title="일시정지" data-icon="pause" disabled></button>
+          <button id="reset" class="icon-button" aria-label="시뮬레이션 초기화" title="초기화" data-icon="reset"></button>
+        </div>
+      </section>
+      <div class="workspace">
+        <section class="world-panel" aria-label="시설 디지털 트윈">
+          <div class="world-toolbar">
+            <span class="view-name"><span class="view-indicator"></span> 실시간 디지털 트윈</span>
+            <div class="view-picker" role="group" aria-label="3D 카메라">
+              <button data-view="orbit" aria-pressed="true" data-icon="cube" title="시설 전체 보기" aria-label="시설 전체 보기"></button>
+              <button data-view="top" aria-pressed="false" data-icon="map" title="평면 보기" aria-label="평면 보기"></button>
+              <button data-view="follow" aria-pressed="false" data-icon="robot" title="로봇 따라가기" aria-label="로봇 따라가기"></button>
+              <span class="toolbar-divider"></span>
+              <button id="thermal" aria-pressed="false" data-icon="heat" title="열화상 보기" aria-label="열화상 보기"></button>
+              <button id="fullscreen" data-icon="expand" title="시설 화면 확대" aria-label="시설 화면 확대"></button>
+            </div>
+          </div>
+          <div id="world" tabindex="0" aria-label="시설 3D 화면. 마우스 또는 터치로 회전하고 설비를 선택할 수 있습니다.">
+            <div class="world-loading" id="worldLoading"><span class="loader"></span>시설을 준비하고 있습니다</div>
+            <div class="world-unavailable" id="worldUnavailable" hidden>이 브라우저에서 3D 화면을 열 수 없습니다. 하드웨어 가속을 켜거나 최신 브라우저로 다시 접속하세요. 시나리오와 실행 기록은 계속 사용할 수 있습니다.</div>
+            <div id="labels" class="labels"></div>
+            <div class="asset-focus">
+              <div class="asset-focus-heading"><span id="assetId">CH-02</span><span id="assetCondition" class="asset-condition">정상</span></div>
+              <strong id="assetName">냉각 순환 설비</strong>
+              <div class="asset-reading"><span id="assetTemperature">38.4</span><small>°C</small><span class="reading-source">모델 온도</span></div>
+              <div class="asset-focus-footer"><span>경보 기준 60°C</span><span class="sensor-dot"></span></div>
+            </div>
+            <div class="scene-legend"><span><i class="legend-route"></i>현재 경로</span><span><i class="legend-goal"></i>점검 지점</span><span id="thermalLegend" hidden><i class="legend-heat"></i>예시 온도 분포</span></div>
+            <span class="orbit-hint" id="orbitHint">드래그로 회전 · 설비를 눌러 상태 확인</span>
+          </div>
+          <div class="robot-telemetry">
+            <div class="robot-state"><span class="robot-emblem" data-icon="robot"></span><div><strong id="robotName">점검 로봇 R-01</strong><span id="robotStatus">도킹 · 임무 대기</span></div></div>
+            <div class="telemetry-item"><span>속도</span><strong><span id="velocity">0.00</span><small>m/s</small></strong></div>
+            <div class="telemetry-item"><span>배터리</span><strong><span id="battery">85</span><small>%</small></strong></div>
+            <div class="telemetry-item connection-item"><span>연결 상태</span><strong id="connection"><i></i>정상</strong></div>
+          </div>
+          <div class="intervention-bar">
+            <span class="intervention-label">상황을 바꿔보세요</span>
+            <button id="block" data-icon="obstacle" aria-pressed="false" disabled>통로 차단</button>
+            <button id="disconnect" data-icon="link" aria-pressed="false" disabled>통신 끊기</button>
+            <button id="lowBattery" data-icon="battery" aria-pressed="false">배터리 부족</button>
+          </div>
+        </section>
+        <aside class="response-panel" aria-label="Agent와 로봇의 대응 설명">
+          <div class="response-heading"><h2>연결된 대응</h2><span id="missionClock">00:00</span></div>
+          <div class="progress-track" aria-label="대응 진행 단계">
+            <span data-step="0" class="current">감지</span><i></i><span data-step="1">판단</span><i></i><span data-step="2">행동</span><i></i><span data-step="3">검증</span>
+          </div>
+          <div class="current-stage"><span class="stage-symbol" id="stageSymbol" data-icon="pulse"></span><div><span id="stageEyebrow">대응 준비</span><h3 id="stageTitle">이상 상황을 실행하세요</h3></div></div>
+          <p id="stageDescription" class="stage-description">설비 상태를 바꾸면 Agent의 판단과 로봇의 행동이 달라집니다.</p>
+          <div class="role-block agent-role">
+            <div class="role-heading"><span class="role-icon" data-icon="agent"></span><h3>Agent</h3><span class="engine-label" id="agentEngineLabel">규칙 기반</span></div>
+            <p id="agentReason">센서 신호를 비교하고, 대응 순서와 점검 임무를 결정합니다.</p>
+            <div class="role-footnote"><span class="small-dot"></span><span id="agentAction">온도 · 열화상 · 점검 이력</span></div>
+          </div>
+          <div class="role-block physical-role">
+            <div class="role-heading"><span class="role-icon" data-icon="robot"></span><h3>로봇·설비 제어</h3><span class="engine-label" id="controllerLabel">자율 제어</span></div>
+            <p id="physicalReason">이동과 관측, 환기 조치를 수행하고 결과를 돌려줍니다.</p>
+            <div class="role-footnote"><span class="small-dot"></span><span id="physicalAction">경로 계획 · 연결 감시 · 상태 확인</span></div>
+          </div>
+          <div class="mission-action">
+            <button id="start" class="primary-button"><span data-icon="play"></span><span id="startLabel">과열 시나리오 실행</span><span class="button-arrow" data-icon="arrow"></span></button>
+            <p id="scenarioSummary">온도 상승을 확인하고, 로봇 점검과 보조 환기로 대응합니다.</p>
+          </div>
+          <div class="model-note"><span data-icon="info"></span><span id="modelNote">경량 모드 · 비학습 자율 제어<br>예시 시설·열모델을 사용하는 시뮬레이션</span></div>
+          <div class="engine-loading" id="engineLoading" hidden><span class="loader"></span><span id="engineLoadingText">보행 정책 준비 중</span></div>
+        </aside>
+      </div>
+      <section class="evidence-grid">
+        <div class="chart-panel">
+          <div class="section-heading"><div><h2>조치가 만든 변화</h2><p>같은 이상에 대응했을 때와 대응하지 않았을 때</p></div><span class="chart-unit">CH-02 / °C</span></div>
+          <div class="chart-stats"><div><span>현재 모델 온도</span><strong><span id="currentTemp">38.4</span><small>°C</small></strong></div><div><span>조치 없는 경우</span><strong class="counterfactual"><span id="baselineTemp">38.4</span><small>°C</small></strong></div><div><span>보조 환기</span><strong><span id="fanLevel">35</span><small>%</small></strong></div></div>
+          <div class="chart-container">
+            <svg id="temperatureChart" viewBox="0 0 700 165" role="img" aria-label="시뮬레이션 시간에 따른 모델 온도와 조치 없는 경우의 온도 그래프">
+              <g class="chart-grid"><path d="M40 18H680M40 60H680M40 102H680M40 144H680" /></g>
+              <g class="chart-axis"><text x="10" y="22">110</text><text x="17" y="64">80</text><text x="17" y="106">50</text><text x="17" y="148">20</text><text x="40" y="163" id="chartStart">0s</text><text x="645" y="163" id="chartEnd">30s</text></g>
+              <path id="warningLine" d="M40 88H680" class="warning-line" /><text x="573" y="83" class="warning-caption">경보 기준 60°C</text>
+              <path id="baselineLine" d="M40 118H680" class="baseline-line" />
+              <path id="actualArea" d="" class="actual-area" />
+              <path id="actualLine" d="M40 118H680" class="actual-line" />
+              <circle id="chartTip" cx="40" cy="118" r="4.5" />
+            </svg>
+          </div>
+          <div class="chart-footer"><div class="chart-legend"><span><i class="actual-key"></i>모델 온도</span><span><i class="baseline-key"></i>조치 없는 경우</span></div><span>예시 열모델 · 시뮬레이션 시간(s)</span></div>
+        </div>
+        <div class="event-panel">
+          <div class="section-heading"><div><h2>판단과 실행의 근거</h2><p>이번 실행에서 발생한 기록</p></div><span class="event-count" id="eventCount">0개</span></div>
+          <ol id="eventList" class="event-list"><li class="event-invitation"><span data-icon="timeline"></span><div><strong>시설의 대응을 시작해보세요</strong><p>센서 관측부터 조치 확인까지, 실행한 근거가 이곳에 쌓입니다.</p></div></li></ol>
+        </div>
+      </section>
+      <footer class="page-footer"><span>Facility AI Twin · Interactive research prototype</span><button id="aboutModels">모델과 공개 자산 안내</button><span id="runIdentifier">실제 시설 연동 없음</span></footer>
+    </main>
+    <div id="toast" class="toast" role="status" hidden></div>
+    <button id="mobileStart" class="mobile-start primary-button"><span data-icon="play"></span><span id="mobileStartLabel">설비 과열 시나리오 실행</span></button>
+    <dialog id="infoDialog">
+      <div class="dialog-heading"><h2 id="dialogTitle">데모 안내</h2><button id="closeDialog" class="icon-button" aria-label="창 닫기" data-icon="close"></button></div>
+      <div id="dialogContent"></div>
+      <div class="dialog-actions"><button id="downloadReport" class="primary-button" data-icon="download" hidden>실행 근거 JSON 내려받기</button><button id="closeDialogBottom" class="outline-button">닫기</button></div>
+    </dialog>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
