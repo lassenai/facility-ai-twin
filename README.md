@@ -1,127 +1,216 @@
 # Facility AI Twin
 
-시설 이상을 **감지 → 판단 → 현장 점검 → 조치 → 검증 → 복귀**로 연결하는 웹 MVP입니다. 한국어 설명과 실행 근거를 함께 보여주며, Unity·Unreal 설치 없이 PC와 모바일 브라우저에서 실행합니다.
+A browser-based MVP that connects **detection → agent reasoning → on-site inspection → intervention → verification → return to dock** in a simulated facility. Explore how an agent and a virtual inspection robot respond to equipment incidents, with Korean explanations and a traceable execution log.
 
-**[브라우저 데모 열기](https://lassenai.github.io/facility-ai-twin/)** · [GitHub 저장소](https://github.com/lassenai/facility-ai-twin)
+**[Open the live demo](https://lassenai.github.io/facility-ai-twin/)** · [GitHub repository](https://github.com/lassenai/facility-ai-twin)
 
-스마트폰에서는 링크를 열고 **경량 자율 제어 · 규칙 기반 Agent**로 시작하세요. 별도 설치 없이 시설 대응, Go1 자율 점검, 현장 사진 확대·저장을 실행할 수 있습니다.
+Runs on desktop and mobile browsers without Unity, Unreal Engine, or an app installation. On mobile, start with the default **rule-based agent and lightweight autonomous control**. The public demo stays available when your local computer is turned off.
 
-![Facility AI Twin 브라우저 화면](docs/preview.png)
+![Facility AI Twin browser interface](docs/preview.png)
 
-## 바로 실행
+## Quick start
 
-Node.js 22.12 이상이 필요합니다. 처음 한 번 의존성을 설치합니다.
+Requires **Node.js 22.12 or later**.
 
-    cd C:\CodexProj\facility-ai-twin
-    npm ci
-    npm run dev
+```sh
+git clone https://github.com/lassenai/facility-ai-twin.git
+cd facility-ai-twin
+npm ci
+npm run dev
+```
 
-브라우저에서 **http://localhost:5180/** 을 엽니다.
+Open **[http://localhost:5180/](http://localhost:5180/)** in your browser.
 
-Windows에서는 의존성 설치 후 아래 실행기로 서버와 로컬 Agent 브리지를 함께 열 수 있습니다.
+After installing dependencies, Windows users can start both the web server and local agent bridge with:
 
-    powershell -ExecutionPolicy Bypass -File .\Launch-Demo.ps1
+```powershell
+powershell -ExecutionPolicy Bypass -File .\Launch-Demo.ps1
+```
 
-실행기가 시작한 백그라운드 서버는 아래 명령으로 종료합니다. 다른 터미널에서 실행한 서버는 해당 터미널에서 Ctrl+C로 종료합니다.
+Stop the background processes started by this launcher with:
 
-    powershell -ExecutionPolicy Bypass -File .\Stop-Demo.ps1
+```powershell
+powershell -ExecutionPolicy Bypass -File .\Stop-Demo.ps1
+```
 
-기본 데모에는 API 키나 별도 Agent 서버가 필요하지 않습니다. 동일 Wi-Fi의 모바일은 터미널에 표시된 Network 주소와 5180 포트로 접속할 수 있습니다. 학교·공유 네트워크에서는 장치 간 통신 제한과 Windows 방화벽 설정에 따라 접근이 달라집니다.
+For servers started manually in a terminal, use `Ctrl+C` in that terminal.
 
-**Go1 자율 점검**에서 장비와 점검 환경을 선택하고 **점검 보내기**를 누릅니다. 3D 화면의 장비를 선택한 뒤 **이 장비 점검 보내기**를 눌러도 됩니다. 현장 도착 후 온도 센서·열화상·관측 차이와 판정을 웹에 보고합니다. 정상 판정이면 자동 복귀하고, 과열·센서 불일치·확인 불가이면 현장에서 기다립니다. **보고 확인 · 복귀 지시**로 돌아오게 할 수 있으며, 복귀 후에도 이상 판정이 유지됩니다. 이 웹 점검은 브리지와 API 없이 공개 데모에서도 실행됩니다. 점검 중 환기 설정은 변경하지 않습니다.
+The basic demo requires no API key or agent server. A phone on the same Wi-Fi network can connect using the **Network** URL printed by Vite, on port `5180`. Access depends on your firewall and network's device-to-device communication settings.
 
-## 보여줄 수 있는 동작
+The application interface is currently in Korean. The labels below include their Korean text so you can find the controls.
 
-규칙 기반 Agent의 시설 대응 시나리오와 Go1 자율 점검 모두 현장 사진을 웹으로 보고합니다. 로봇이 장비 앞에서 관측하면 **Agent 카드 → 현장 사진 도착**과 아래 **현장 보고**에 같은 가상 사진을 표시합니다. 사진을 눌러 크게 보거나 JPEG로 저장할 수 있습니다. Codex·Hermes 모드도 초기 계획을 받은 뒤 같은 현장 촬영 흐름을 사용합니다. 사진의 온도·판정은 촬영 당시 기록이며, 조치 후 현재 상태는 Agent 설명과 온도 그래프에서 확인합니다. 규칙 기반 모드의 촬영·보기·저장에는 API나 브리지가 필요하지 않습니다.
+## Demo features
 
-| 상황 | Agent의 판단 | 로봇·설비 동작 |
+### Facility incident response
+
+Choose a scenario and start the simulation. The agent explains its decision, the robot travels to the inspection point, and the execution log records observations and actions.
+
+| Situation | Agent decision | Robot or facility action |
 |---|---|---|
-| 설비 과열 | 온도와 독립 열화상 교차 확인 | 점검 지점 이동 → 관측 → 환기 85% → 안정화 확인 → 복귀 |
-| 센서 오류 | 온도 신호와 열화상 불일치 확인 | 현장 점검, 환기 유지, 센서 재교정 요청 기록 |
-| 통신 단절 | 연결 복구 후 상태 재확인 | 주행 명령 0, 복구 버튼을 누른 뒤 재개 |
-| 통로 차단 | 통행 가능한 구역 갱신 | A* 경로 재계산, 장애물 우회 |
-| 배터리 부족 | 20% 이하에서 임무 보류 | 출동·주행 정지, 충전 상태 복구 후 재개 |
+| Equipment overheating | Cross-check the temperature sensor against an independent simulated thermal observation | Travel → inspect → set auxiliary ventilation to 85% → verify stabilization → return to dock |
+| Sensor fault | Identify disagreement between the sensor and thermal observation | Inspect on site, retain ventilation settings, and record a sensor recalibration request |
+| Communication loss | Wait for reconnection and recheck state | Set the drive command to zero; resume after the user restores the connection |
+| Blocked corridor | Update the traversable area | Replan the A* route and navigate around the obstacle |
+| Low battery | Hold the mission at 20% charge or below | Suspend dispatch or driving; resume after the battery state is restored |
 
-설비 선택, 시설 회전·평면·로봇 추적 카메라, 예시 열화상, 1/2/4배 시간, 일시정지, 초기화, 실행 리포트와 JSON 다운로드를 지원합니다. 모바일에는 화면 하단 실행 버튼이 있습니다.
+The interface includes selectable equipment, orbit/top-down/robot-follow cameras, a simulated thermal view, 1×/2×/4× speed, pause/reset controls, temperature comparisons, mission reports, and JSON downloads. Mobile layouts include a start button at the bottom of the screen.
 
-## 실제 Agent를 노트북에서 연결
+### Autonomous equipment inspection
 
-별도 터미널에서 실행합니다.
+In **Go1 Autonomous Inspection** (`Go1 자율 점검`), select equipment and an inspection condition, then click **Send for Inspection** (`점검 보내기`). You can also select equipment in the 3D scene and click **Send to Inspect This Equipment** (`이 장비 점검 보내기`).
 
-    npm run agent:bridge
+After arriving, Go1 reports the sensor reading, thermal observation, their difference, and an inspection finding:
 
-브리지가 이미 실행 중이면 기존 브리지를 사용하라는 안내 후 정상 종료합니다. 5181 포트에서 다른 프로그램이 응답하면 포트 확인 안내를 표시합니다. 이미 브리지가 실행 중인 경우에는 추가로 실행할 필요 없이 아래 메뉴에서 Agent를 선택하면 됩니다.
+- **Normal:** automatically return to the docking point.
+- **Suspected overheating, sensor mismatch, or unconfirmed:** remain on site for review. Click **Acknowledge Report · Return** (`보고 확인 · 복귀 지시`) to send the robot back.
+- **Return before observation:** report that the on-site inspection was not completed.
 
-localhost 화면의 Agent 선택 메뉴에서 **Codex · 로컬 CLI** 또는 **Hermes · 로컬 CLI**를 고릅니다. 설치된 프로그램과 기존 로그인·모델 설정을 사용합니다. 앱에 API 키를 저장하지 않습니다. CLI의 모델 호출은 설정된 서비스에 따라 인터넷과 사용량이 필요할 수 있습니다.
+Findings remain available after return. Inspection-only missions do not change ventilation settings. This workflow runs on the public demo without an API or local bridge.
 
-Agent는 관측 JSON에서 최초 점검 계획과 한국어 근거를 반환합니다. 응답 대기 동안 시뮬레이션 시간을 멈춥니다. 브라우저와 브리지가 허용된 대상·조치 및 센서·배터리 제약을 검증한 뒤 실행합니다. 잘못된 결과나 연결 실패 시 보류하고 이유를 표시합니다. 규칙 기반으로 자동 전환하지 않습니다.
+### On-site photo reports
 
-브리지는 127.0.0.1:5181에만 바인딩합니다. Vite의 /agent 프록시, 허용된 localhost Origin, 세션 토큰을 사용하며 공개 사이트나 LAN 클라이언트에서는 CLI를 실행할 수 없습니다. 사용자 입력으로 셸 명령을 받지 않습니다. Codex는 읽기 전용 임시 세션, Hermes는 도구가 없는 전용 프로세스로 실행합니다. 결과는 Git에서 제외되는 .runtime/에 저장합니다.
+Facility response scenarios and autonomous inspections produce a **virtual on-site photo** after the robot observes equipment from its inspection position. The same image appears in the agent card under **On-site Photo Received** (`현장 사진 도착`) and in the **Field Report** (`현장 보고`). Click it to enlarge or download a JPEG.
 
-경로를 자동으로 찾지 못할 때 브리지를 시작하는 터미널에서 설정할 수 있습니다.
+Photos render the 3D simulation scene from a virtual camera at the robot's observed pose. Each image identifies the virtual camera and synthetic observations, equipment ID, readings, finding, and capture time. Readings remain fixed at capture time; the agent explanation and temperature chart show the current state after intervention.
 
-    $env:CODEX_CLI_PATH = 'C:\...\codex.exe'
-    $env:HERMES_CLI_PATH = 'C:\...\hermes.exe'
-    $env:HERMES_AGENT_ROOT = 'C:\...\hermes-agent'
-    $env:HERMES_PYTHON_PATH = 'C:\...\hermes-agent\venv\Scripts\python.exe'
-    npm run agent:bridge
+Rule-based capture, viewing, and downloading work without an API or bridge. Codex and Hermes use the same photo workflow after returning their initial plan.
 
-Hermes 어댑터는 설치된 Python 모듈을 사용해 프로세스 안에 빈 도구 집합을 등록합니다. 설치된 Hermes의 내부 모듈 구조가 바뀌면 어댑터 조정이 필요할 수 있습니다. 사용자 Hermes 설정 파일은 수정하지 않습니다.
+## Agent modes
 
-## Go1 보고를 텔레그램으로 받기
+| Mode | Execution | Availability |
+|---|---|---|
+| Rule-based agent (`Agent · 규칙 기반`) | Deterministic incident classification and execution logic in the browser | Public demo, localhost, and LAN |
+| Codex (`Codex · 로컬 CLI`) | Initial decision from the installed Codex CLI, followed by validated simulation execution | Localhost with the bridge |
+| Hermes (`Hermes · 로컬 CLI`) | Initial decision from the installed Hermes environment, followed by validated simulation execution | Localhost with the bridge |
 
-로컬 브리지가 기존 Hermes의 봇 토큰과 기본 대화방 설정을 읽어 재사용합니다. 데모를 새로고침하고 상단 **텔레그램**을 누르면 받는 봇·대화방과 메시지 미리보기를 확인할 수 있습니다.
+To connect installed agents, start the bridge in a separate terminal:
 
-- **현재 상태 보내기**: 위치, 온도·열화상, 배터리·연결, 이동 속도와 환기 상태.
-- **대응 요약**: 현재 임무의 판단, 검증·복귀 결과, 이동 거리와 보행 정책 추론 횟수.
-- **임무 진행 자동 보고**: 켠 이후 발생하는 경보·Agent 판단, 이동·현장 점검, 환기 조치, 정지·복구와 복귀 이벤트.
-- **연결 테스트**: 기존 대화방으로 가상 Go1의 확인 메시지를 전송.
+```sh
+npm run agent:bridge
+```
 
-자동 보고는 기본으로 꺼져 있습니다. 메시지에는 **가상 Go1 R-01**과 **브라우저 시뮬레이션**이 표시됩니다. Telegram의 발송 성공 응답을 받은 메시지만 화면에서 `전송됨`으로 표시하며, 결과가 불확실한 요청은 자동 재전송하지 않습니다.
+If the bridge is already running, the command exits normally and tells you to use the existing instance. If another application occupies port `5181`, it displays a port-check message.
 
-**스마트폰 명령 받기**를 켜면 기존 Hermes 대화방에서 `Go1 CH-02 점검해줘`, `Go1 공조 유닛 점검해줘`, `Go1 상태`, `Go1 정지`, `Go1 복귀`로 웹 Go1을 지시할 수 있습니다. 장비 5종의 이동·관측·이상 판정·보고·복귀를 지원합니다. 웹에서 시작한 점검도 Telegram 복귀 명령으로 도킹 위치에 돌아옵니다. 이동 중 점검을 중단하고 복귀하면 현장 관측 미완료로 보고합니다. 점검 환경에서 과열·센서 오류·정상 예시 또는 현재 모델을 선택하며, 점검 명령은 환기 설정을 변경하지 않습니다. 노트북 화면을 열어두어야 합니다.
+On the localhost page, select Codex or Hermes from the agent menu. These modes use installed software and existing authentication/model settings. The app does not store an API key. A local CLI may still use a hosted model, internet access, and account usage depending on its configuration.
 
-음성 호출 이름은 **고원**입니다. 기존 Hermes 대화방에서 마이크로 `고원아, 공조 유닛 점검해줘`, `고원아, 상태 알려줘`, `고원아, 정지해줘`, `고원아, 복귀해줘`라고 말합니다. Hermes가 한국어를 로컬 Whisper로 인식해 문장을 보여주고, 고원 → Go1로 연결합니다. 일반 음성 대화는 Hermes가 이어서 처리합니다. 점검 명령 해석에는 별도 LLM 호출이 필요하지 않습니다.
+The agent receives observation JSON and returns an initial inspection plan with a Korean explanation. Simulation time pauses while awaiting the response. The browser and bridge validate allowed targets/actions and sensor/battery constraints before execution. Invalid output or connection failure holds the mission and displays the reason; it does not silently switch to the rule-based agent.
 
-이 PC에는 음성 확장과 한국어 STT를 적용했습니다. 다른 Windows PC에서는 `.\Install-Hermes-Go1.ps1 -Voice`를 실행하고 기존 `hermes gateway`를 재시작합니다. 기본 모델은 `base`, 실행은 CPU int8입니다. 첫 사용에는 모델 다운로드가 필요하고 이후 음성 인식은 로컬에서 실행합니다. 설정 원본은 해당 Hermes 홈에 백업하며 다른 프로필은 변경하지 않습니다. 봇의 기존 수신기를 사용합니다.
+The bridge binds to **`127.0.0.1:5181`** and uses Vite's `/agent` proxy, allowed localhost origins, and a session token. Public and LAN pages cannot invoke the local CLI. User input is not accepted as a shell command. Codex runs in a temporary read-only session; Hermes runs in a dedicated process with no tools. Results are stored in the Git-ignored `.runtime/` directory.
 
-봇 토큰은 서버에서만 읽습니다. 브라우저·저장소·공개 빌드에 포함하지 않습니다. 공개 사이트와 LAN 접속에서는 미리보기만 사용할 수 있으며, 실제 전송은 노트북 localhost에서 시연합니다. [설정과 사용 방법](docs/TELEGRAM.md)을 참고하세요.
+If automatic discovery fails, set the relevant paths in the terminal that starts the bridge:
 
-## 두 로봇 모드
+```powershell
+$env:CODEX_CLI_PATH = 'C:\...\codex.exe'
+$env:HERMES_CLI_PATH = 'C:\...\hermes.exe'
+$env:HERMES_AGENT_ROOT = 'C:\...\hermes-agent'
+$env:HERMES_PYTHON_PATH = 'C:\...\hermes-agent\venv\Scripts\python.exe'
+npm run agent:bridge
+```
 
-**경량 자율 제어**는 모바일·발표 기본 모드입니다. A*와 운동학 모델을 사용하며 학습 정책이 아닙니다. 시설 장애물의 여유 폭과 연결·배터리 제한을 적용합니다.
+The Hermes decision adapter registers an empty tool set inside its own process without changing your Hermes configuration. Changes to Hermes's internal Python modules may require adapter updates.
 
-**Go1 보행정책 · 정밀**은 브라우저 MuJoCo 접촉 물리와 공개 ONNX 관절 정책을 실행합니다. 실제 관절·강체 상태를 그리며, 위치 관측을 바탕으로 A* 경로를 추종합니다. 시설 의사결정이나 내비게이션 정책을 새로 강화학습한 결과는 아닙니다. 자세가 무너지면 실행을 중지합니다.
+## Telegram reports and smartphone commands
 
-정밀 모드는 처음 선택할 때 MuJoCo·ONNX WASM과 Go1 자산 약 35 MB를 불러옵니다. 모바일 성능은 기기에 따라 달라집니다. 경량 모드는 이 자산을 미리 다운로드하지 않습니다.
+The local bridge reuses your existing Hermes bot token and default chat configuration. Refresh the localhost demo and click **Telegram** (`텔레그램`) to view the destination and message preview.
 
-## GitHub Pages 배포
+- **Send Current Status** (`현재 상태 보내기`): position, sensor/thermal readings, battery, connection, speed, and ventilation state.
+- **Response Summary** (`대응 요약`): reasoning, verification/return results, travel distance, and policy inference count.
+- **Automatic Mission Reports** (`임무 진행 자동 보고`): subsequent alerts, decisions, travel, inspection, intervention, stop/recovery, and return events.
+- **Connection Test** (`연결 테스트`): send a confirmation message from virtual Go1 to the existing chat.
 
-이 프로젝트는 정적 배포용입니다. 저장소에 소스를 올리고 GitHub 저장소 Settings → Pages → Source를 **GitHub Actions**로 설정하면 .github/workflows/pages.yml이 main 브랜치에서 테스트·빌드 후 배포합니다. 저장소 이름에 맞게 상대 경로를 사용하므로 /facility-ai-twin/ 같은 하위 경로에서도 실행할 수 있습니다.
+Automatic reporting is off by default. Messages identify **virtual Go1 R-01** and the **browser simulation**. Only Telegram-confirmed deliveries appear as sent. Requests with uncertain outcomes are not automatically resent.
 
-    npm test
-    npm run build
-    npm run preview
+### Text commands
 
-배포 주소는 **https://lassenai.github.io/facility-ai-twin/** 입니다. main 브랜치에 변경 사항을 올리면 자동 테스트·빌드를 거쳐 공개 페이지를 갱신합니다. 공개 페이지에서는 규칙 기반 Agent와 두 로봇 모드, 텔레그램 보고 미리보기를 사용할 수 있습니다. 노트북을 켜두지 않아도 공개 데모는 실행됩니다. 로컬 CLI, 실제 텔레그램 발송과 스마트폰 명령 수신은 노트북 localhost에서 시연합니다.
+Enable **Receive Smartphone Commands** (`스마트폰 명령 받기`) on the localhost page, then send commands to the existing Hermes chat:
 
-## 기술 구성과 확장
+| Example command | Meaning |
+|---|---|
+| `Go1 CH-02 점검해줘` | Inspect CH-02 |
+| `Go1 공조 유닛 점검해줘` | Inspect the air-handling unit |
+| `Go1 상태` | Report current status |
+| `Go1 정지` | Stop the robot |
+| `Go1 복귀` | Return to dock |
 
-- Three.js: 절개된 설비실, 장비, 배관, 점검 로봇과 상태 표시.
-- Simulation: 시간 기반 상태 전이, 센서·열화상 관측, 열모델, 개입, 실행 기록.
-- MuJoCo + ONNX Runtime: 선택적 Go1 물리·보행 정책 실행.
-- Local CLI bridge: 최초 점검 계획 요청·검증, 취소·타임아웃·동시 실행 제한.
-- Telegram bridge: Hermes 기본 대화방 재사용, 관측 기반 Go1 보고와 설비 점검 사진, 순차 발송과 요청 중복 방지.
-- 테스트: 대응 순서, 센서 오류, 장애물, 통신·배터리 제약, 리포트 독립 복사, Agent 판단 검증, HTTP 브리지 접근 제약, 텔레그램 설정·중복·실패 처리.
+The command workflow supports travel, observation, findings, simulated equipment photos, reporting, and return for all five equipment items. Telegram return commands also work for inspections started in the browser. Returning before observation reports an incomplete inspection.
 
-[발표 진행안](docs/DEMO.md), [학교 PC·Docker 연결 설계](docs/LOCAL_AGENTS.md), [텔레그램 보고](docs/TELEGRAM.md), [디자인 방향](docs/DESIGN.md), [공개 자산 고지](THIRD_PARTY_NOTICES.md)를 참고하세요.
+Choose overheating, sensor fault, normal, or current-model conditions in the inspection settings. Inspection commands do not change ventilation settings. Keep the localhost browser page open to execute missions.
 
-[MVP 검증 기록](docs/VERIFICATION.md)에 자동 테스트와 실제 브라우저·CLI 검증 결과를 기록했습니다.
+### Voice commands: “고원” → Go1
 
-## 현재 구현의 범위
+The Korean voice name is **고원** (*Gowon*), normalized to **Go1**. Use the microphone in the existing Hermes Telegram chat to send a voice message:
 
-시설 형상과 열모델은 예시입니다. 센서·열화상 값은 합성 관측이며 실제 카메라나 설비에서 수집하지 않습니다. 환기 명령과 센서 교정 요청도 시뮬레이션·실행 기록에 반영합니다. 텔레그램 발송은 실제로 연결되며, 실제 ICTWAY 플랫폼·BMS·로봇에는 연결되지 않았습니다. 조치하지 않은 온도는 같은 초기 조건의 단순 열모델 비교값입니다.
+| Voice command | Meaning |
+|---|---|
+| `고원아, 공조 유닛 점검해줘` | Gowon, inspect the air-handling unit |
+| `고원아, 상태 알려줘` | Gowon, report your status |
+| `고원아, 정지해줘` | Gowon, stop |
+| `고원아, 복귀해줘` | Gowon, return to dock |
 
-초파리 뇌 연구는 향후 감각 통합·장애물 회피 정책을 동일 환경에서 비교하는 연구 항목입니다. 이 MVP에 초파리 커넥톰이 탑재되었거나 산업 안전·현장 제어 성능이 검증되었다고 주장하지 않습니다.
+Hermes transcribes Korean locally with Whisper, displays the recognized sentence, and routes supported instructions to the twin. Ordinary voice conversations continue through Hermes. Go1 command parsing does not require an additional LLM call.
 
-새 코드의 라이선스는 Apache-2.0이며 공개 모델·정책·라이브러리·폰트에는 각각의 라이선스가 적용됩니다.
+On Windows with Hermes installed, install the extension and configure Korean STT using:
+
+```powershell
+.\Install-Hermes-Go1.ps1 -Voice
+```
+
+Restart your existing `hermes gateway` afterward. The default Whisper model is `base`, running on CPU with int8 precision. The first transcription requires a model download; subsequent transcription runs locally. The installer backs up the target Hermes configuration and leaves other profiles unchanged. It uses the bot's existing message receiver.
+
+Bot credentials are read only on the server and excluded from the browser, repository, and public build. Public and LAN pages provide message previews; actual Telegram sending and smartphone command reception require the localhost setup. See [Telegram setup and usage](docs/TELEGRAM.md).
+
+## Robot control modes
+
+**Lightweight Autonomous Control** (`경량 자율 제어`) is the default for mobile use and presentations. It uses A* planning and a kinematic model, with obstacle clearance and connection/battery constraints. It is not a learned control policy.
+
+**Go1 Locomotion Policy · Precise** (`Go1 보행정책 · 정밀`) runs MuJoCo contact physics and a public ONNX joint-control policy in the browser. It renders simulated joint and rigid-body states while following an A* route from position observations. Facility decision and navigation policies were not newly trained with reinforcement learning for this project. Execution stops if the robot loses its supported posture.
+
+Precise mode loads approximately **35 MB** of MuJoCo/ONNX WASM and Go1 assets on first selection. Performance varies by device. Lightweight mode does not preload these assets.
+
+## GitHub Pages deployment
+
+The published demo is **[https://lassenai.github.io/facility-ai-twin/](https://lassenai.github.io/facility-ai-twin/)**.
+
+[`.github/workflows/pages.yml`](.github/workflows/pages.yml) tests, builds, and deploys changes pushed to `main`. GitHub Pages is configured with **Settings → Pages → Source → GitHub Actions**. Relative asset paths support project URLs such as `/facility-ai-twin/`.
+
+To check a production build locally:
+
+```sh
+npm test
+npm run build
+npm run preview
+```
+
+The public site supports the rule-based agent, both robot modes, autonomous inspections, photo reports, and Telegram message previews. It runs without your notebook staying online. Local CLI execution, actual Telegram delivery, and smartphone command reception require the localhost bridge and browser page.
+
+## Technology and documentation
+
+- **Three.js:** a cutaway equipment room, equipment, pipes, robot, and state overlays.
+- **Simulation:** time-based state transitions, synthetic sensor/thermal observations, thermal dynamics, interventions, and execution evidence.
+- **MuJoCo + ONNX Runtime:** optional Go1 physics and locomotion policy execution.
+- **Local CLI bridge:** initial decision requests, output validation, cancellation, timeouts, and concurrency limits.
+- **Telegram bridge:** reuse of the Hermes chat, observation-based reports and photos, sequential delivery, and duplicate-request handling.
+- **Tests:** response ordering, sensor faults, obstacles, connection/battery constraints, independent report snapshots, decision validation, HTTP access restrictions, and Telegram configuration/delivery behavior.
+
+Supporting documents are primarily in Korean:
+
+- [Demo walkthrough](docs/DEMO.md)
+- [Local agents and school PC/Docker connection design](docs/LOCAL_AGENTS.md)
+- [Telegram reports and commands](docs/TELEGRAM.md)
+- [Design direction](docs/DESIGN.md)
+- [Verification records](docs/VERIFICATION.md)
+- [Third-party notices](THIRD_PARTY_NOTICES.md)
+
+Verification records describe automated tests and browser/CLI checks, including their conditions and limits.
+
+## Current scope
+
+The facility geometry and thermal dynamics are examples. Sensor and thermal values are synthetic observations; inspection photos are rendered simulation images. Ventilation changes and recalibration requests affect simulation state and execution records. Telegram delivery is real when configured. The project is not connected to ICTWAY's platform, a building management system, or a physical robot.
+
+The “without intervention” temperature is a simple thermal-model comparison using the same initial conditions. It does not establish measured effects in a real facility.
+
+Fruit-fly brain research is a future direction for comparing sensory integration and obstacle-avoidance policies in the same environment. This MVP does not embed a fly connectome or claim validated industrial safety or physical control performance.
+
+## License
+
+New project code is licensed under **Apache-2.0**. Public models, policies, libraries, and fonts retain their respective licenses. See [LICENSE](LICENSE), [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), and [LICENSES](LICENSES).
