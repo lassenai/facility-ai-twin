@@ -59,13 +59,16 @@ The interface includes selectable equipment, orbit/top-down/robot-follow cameras
 
 In **Go1 Autonomous Inspection** (`Go1 자율 점검`), select equipment and an inspection condition, then click **Send for Inspection** (`점검 보내기`). You can also select equipment in the 3D scene and click **Send to Inspect This Equipment** (`이 장비 점검 보내기`).
 
-After arriving, Go1 reports the sensor reading, thermal observation, their difference, and an inspection finding:
+After arriving, Go1 reports the sensor reading, thermal observation, their difference, and an inspection finding. Findings are evaluated in order: a sensor/thermal difference greater than 5°C indicates a mismatch; otherwise, both readings at or above 60°C indicate suspected overheating, both below 60°C indicate a normal result, and other cases remain unconfirmed.
+
+For **browser-started inspections**, the return policy is:
 
 - **Normal:** automatically return to the docking point.
 - **Suspected overheating, sensor mismatch, or unconfirmed:** remain on site for review. Click **Acknowledge Report · Return** (`보고 확인 · 복귀 지시`) to send the robot back.
-- **Return before observation:** report that the on-site inspection was not completed.
 
-Findings remain available after return. Inspection-only missions do not change ventilation settings. This workflow runs on the public demo without an API or local bridge.
+Findings remain available after return. Inspection-only missions do not change ventilation settings. Overheating and sensor-fault presets target CH-02; other equipment uses fixed example readings. This workflow runs on the public demo without an API or local bridge.
+
+**Telegram-started inspections** report the finding and automatically return even when the finding is abnormal. The abnormal finding remains in the report after return. A Telegram return command can interrupt an inspection before observation; the resulting report identifies the inspection as incomplete.
 
 ### On-site photo reports
 
@@ -122,6 +125,14 @@ Automatic reporting is off by default. Messages identify **virtual Go1 R-01** an
 
 ### Text commands
 
+Text commands require the **Hermes Go1 relay extension**. With Hermes already installed and its Telegram chat configured, install the extension from the project directory:
+
+```powershell
+.\Install-Hermes-Go1.ps1
+```
+
+Restart your existing `hermes gateway` afterward. The voice installer described below also installs this extension, so you can use `-Voice` instead if you want both text and voice commands. The current relay connects to `127.0.0.1:5181`; run Hermes and the bridge on the same computer. Connecting a school PC or Docker instance requires a separate authenticated relay, as described in the [connection design](docs/LOCAL_AGENTS.md).
+
 Enable **Receive Smartphone Commands** (`스마트폰 명령 받기`) on the localhost page, then send commands to the existing Hermes chat:
 
 | Example command | Meaning |
@@ -134,7 +145,9 @@ Enable **Receive Smartphone Commands** (`스마트폰 명령 받기`) on the loc
 
 The command workflow supports travel, observation, findings, simulated equipment photos, reporting, and return for all five equipment items. Telegram return commands also work for inspections started in the browser. Returning before observation reports an incomplete inspection.
 
-Choose overheating, sensor fault, normal, or current-model conditions in the inspection settings. Inspection commands do not change ventilation settings. Keep the localhost browser page open to execute missions.
+Choose overheating, sensor fault, normal, or current-model conditions in the inspection settings. Overheating and sensor-fault presets affect CH-02. Inspection commands do not change ventilation settings. Command-triggered inspections automatically send findings and photos without enabling the separate automatic mission-report toggle.
+
+Keep the localhost browser page open and visible to execute missions. Only one page can receive smartphone commands at a time. Switching a remote mission's page to the background pauses the robot; closing it releases the receiver.
 
 ### Voice commands: “고원” → Go1
 
@@ -171,7 +184,7 @@ Precise mode loads approximately **35 MB** of MuJoCo/ONNX WASM and Go1 assets on
 
 The published demo is **[https://lassenai.github.io/facility-ai-twin/](https://lassenai.github.io/facility-ai-twin/)**.
 
-[`.github/workflows/pages.yml`](.github/workflows/pages.yml) tests, builds, and deploys changes pushed to `main`. GitHub Pages is configured with **Settings → Pages → Source → GitHub Actions**. Relative asset paths support project URLs such as `/facility-ai-twin/`.
+[.github/workflows/pages.yml](.github/workflows/pages.yml) tests, builds, and deploys changes pushed to `main`. GitHub Pages is configured with **Settings → Pages → Source → GitHub Actions**. Relative asset paths support project URLs such as `/facility-ai-twin/`.
 
 To check a production build locally:
 
@@ -202,6 +215,19 @@ Supporting documents are primarily in Korean:
 - [Third-party notices](THIRD_PARTY_NOTICES.md)
 
 Verification records describe automated tests and browser/CLI checks, including their conditions and limits.
+
+### Source guide
+
+| Behavior | Implementation |
+|---|---|
+| Browser controls, agent requests, and mission orchestration | [src/main.js](src/main.js) |
+| Facility response and deterministic agent decisions | [src/simulation.js](src/simulation.js), [src/decision.js](src/decision.js) |
+| Inspection findings and return policies | [src/inspection.js](src/inspection.js) |
+| Virtual camera capture, report images, and photo viewer | [src/scene.js](src/scene.js), [src/inspection-photo.js](src/inspection-photo.js), [src/photo-client.js](src/photo-client.js) |
+| Local CLI execution and HTTP access restrictions | [bridge/server.js](bridge/server.js), [bridge/hermes-runner.py](bridge/hermes-runner.py) |
+| Telegram delivery and remote commands | [bridge/telegram.js](bridge/telegram.js), [bridge/remote-control.js](bridge/remote-control.js), [src/remote-commands.js](src/remote-commands.js) |
+| Hermes command forwarding and Korean voice setup | [integrations/hermes/facility-go1/__init__.py](integrations/hermes/facility-go1/__init__.py), [integrations/hermes/configure_voice.py](integrations/hermes/configure_voice.py), [Install-Hermes-Go1.ps1](Install-Hermes-Go1.ps1) |
+| MuJoCo and ONNX locomotion execution | [src/physics/engine.js](src/physics/engine.js), [src/physics/mjcf-body.js](src/physics/mjcf-body.js) |
 
 ## Current scope
 
