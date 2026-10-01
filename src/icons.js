@@ -1,4 +1,5 @@
 const paths = {
+  send: '<path d="m22 2-7 20-4-9-9-4L22 2ZM22 2 11 13"/>',
   help: '<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 2-2.5 2-2.5 4m0 3h.01"/>',
   info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10h.01"/>',
   heat: '<path d="M9 14.8V5a3 3 0 0 1 6 0v9.8a5 5 0 1 1-6 0Z"/><path d="M12 8v10m7-12h2m-2 4h2"/>',

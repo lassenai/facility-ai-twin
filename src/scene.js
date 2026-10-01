@@ -105,7 +105,7 @@ export function createFacilityScene(host, labelHost, onSelect) {
   const dock = new THREE.Group(); dock.position.set(-6.85, 0, 3.45); scene.add(dock);
   box(dock, 0.22, 0.7, 0.8, mats.dark, 0, 0.35, 0, true);
   box(dock, 0.03, 0.1, 0.55, mats.cyan, 0.13, 0.45, 0);
-  const laneLabel = planeText('Inspection corridor', 2.8, 0.43, '#94aab8');
+  const laneLabel = planeText('Lassen AI Labs', 2.8, 0.43, '#94aab8');
   laneLabel.rotation.x = -Math.PI / 2; laneLabel.position.set(0.2, 0.055, 3.75); structure.add(laneLabel);
   for (let i = 0; i < 10; i++) box(structure, 0.45, 0.005, 0.025, mats.paint, -3.4 + i * 0.65, 0.05, 2.4);
   const assetRoots = new Map(), selectable = [], fans = [], labels = [];
@@ -175,6 +175,21 @@ export function createFacilityScene(host, labelHost, onSelect) {
     }
     const plate = planeText(asset.id, 0.57, 0.14, '#f7fafc', '#455f76');
     plate.position.set(asset.w * -0.3, asset.kind === 'tank' ? 1.1 : 0.32, asset.d / 2 + 0.04); group.add(plate);
+    // Inspection waypoints for these assets face the maintenance side.
+    // Model its access panel and identifier so the robot's view is useful.
+    if (['ahu', 'electric'].includes(asset.kind)) {
+      const service = new THREE.Group(), sign = asset.kind === 'ahu' ? 1 : -1;
+      service.position.set(sign * (asset.w / 2 + .015), .18, 0); service.rotation.y = sign * Math.PI / 2; group.add(service);
+      box(service, .83, 1.25, .025, mats.metal, 0, .79, 0, true);
+      box(service, .75, 1.16, .025, mats.white, 0, .79, .025, true);
+      box(service, .4, .22, .035, mats.dark, 0, 1.08, .05, true);
+      box(service, .28, .065, .008, mats.cyan, 0, 1.09, .072);
+      box(service, .045, .25, .045, mats.dark, .28, .72, .057);
+      for (let i = 0; i < 5; i++) box(service, .43, .018, .017, mats.dark, -.025, .43 + i * .048, .049);
+      const id = planeText(asset.id, .53, .13, '#f7fafc', '#455f76'); id.position.set(0, 1.3, .05); service.add(id);
+    } else if (asset.kind === 'tank') {
+      const id = planeText(asset.id, .44, .13, '#f7fafc', '#455f76'); id.rotation.y = Math.PI / 2; id.position.set(.59, 1.15, 0); group.add(id);
+    }
     group.traverse(o => { if (o.isMesh) selectable.push(o); });
     const label = document.createElement('button'); label.className = 'asset-label';
     label.setAttribute('aria-label', asset.name + ' 상태 보기');
@@ -294,6 +309,8 @@ export function createFacilityScene(host, labelHost, onSelect) {
     if (s.routeVersion !== routeVersion) { routeVersion = s.routeVersion; rebuildRoute(s.route); }
     if (route) route.visible = s.active;
     goal.visible = s.active && s.stage !== 'complete' && s.stage !== 'return';
+    const inspectionGoal = s.inspection?.goal || FACILITY.inspection;
+    goal.position.set(inspectionGoal.x, .06, inspectionGoal.z);
     const chosen = FACILITY.assets.find(a => a.id === selected);
     selection.position.set(chosen.x, 0.057, chosen.z);
     selection.scale.setScalar(Math.max(chosen.w, chosen.d) / 3.0);
@@ -339,6 +356,47 @@ export function createFacilityScene(host, labelHost, onSelect) {
       item.element.classList.toggle('active', item.asset.id === selected);
     }
   }
+  function captureInspection(targetId, pose) {
+    const root = assetRoots.get(targetId);
+    if (!root) throw Error('촬영할 장비를 찾지 못했습니다.');
+    const width = 1280, height = 720;
+    const lens = new THREE.PerspectiveCamera(85, width / height, .03, 80);
+    lens.position.set(pose.x, .8, pose.z);
+    const asset = FACILITY.assets.find(a => a.id === targetId);
+    // Frame the equipment itself; long connected pipes should not turn a
+    // close inspection photograph into a mostly empty wide-angle view.
+    const bounds = new THREE.Box3(new THREE.Vector3(asset.x - asset.w / 2, .1, asset.z - asset.d / 2),
+      new THREE.Vector3(asset.x + asset.w / 2, asset.h + .17, asset.z + asset.d / 2));
+    const center = bounds.getCenter(new THREE.Vector3());
+    lens.lookAt(center); lens.updateMatrixWorld();
+    let tangent = 0;
+    for (const x of [bounds.min.x, bounds.max.x]) for (const y of [bounds.min.y, bounds.max.y]) for (const z of [bounds.min.z, bounds.max.z]) {
+      const p = new THREE.Vector3(x, y, z).applyMatrix4(lens.matrixWorldInverse);
+      if (p.z < -.03) tangent = Math.max(tangent, Math.abs(p.y / p.z), Math.abs(p.x / p.z) / lens.aspect);
+    }
+    lens.fov = Math.min(125, Math.max(65, THREE.MathUtils.radToDeg(2 * Math.atan(tangent * 1.12)))); lens.updateProjectionMatrix();
+    const target = new THREE.WebGLRenderTarget(width, height, { samples: 2 }); target.texture.colorSpace = THREE.SRGBColorSpace;
+    const previousTarget = renderer.getRenderTarget(), viewport = renderer.getViewport(new THREE.Vector4()), scissor = renderer.getScissor(new THREE.Vector4()), scissorTest = renderer.getScissorTest();
+    const overlays = [robot, body?.root, marker, scan, route, selection, goal, halo, alarmRing].filter(o => o?.isObject3D);
+    const visibility = overlays.map(o => o.visible), materials = [];
+    // A normal camera photo remains a normal photo even if the operator is
+    // currently viewing the optional simulated thermal colour layer.
+    for (const a of assetRoots.values()) a.traverse(o => {
+      if (o.userData.originalMaterial) { materials.push([o, o.material]); o.material = o.userData.originalMaterial; }
+    });
+    try {
+      overlays.forEach(o => { o.visible = false; });
+      renderer.setRenderTarget(target); renderer.setViewport(0, 0, width, height); renderer.setScissorTest(false); renderer.render(scene, lens);
+      const pixels = new Uint8Array(width * height * 4); renderer.readRenderTargetPixels(target, 0, 0, width, height, pixels);
+      const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height;
+      const context = canvas.getContext('2d'), data = context.createImageData(width, height);
+      for (let row = 0; row < height; row++) data.data.set(pixels.subarray((height - row - 1) * width * 4, (height - row) * width * 4), row * width * 4);
+      context.putImageData(data, 0, 0); return canvas;
+    } finally {
+      overlays.forEach((o, i) => { o.visible = visibility[i]; }); materials.forEach(([o, mat]) => { o.material = mat; });
+      renderer.setRenderTarget(previousTarget); renderer.setViewport(viewport); renderer.setScissor(scissor); renderer.setScissorTest(scissorTest); target.dispose();
+    }
+  }
   function destroy() {
     resize.disconnect(); controls.dispose();
     scene.traverse(o => { o.geometry?.dispose(); });
@@ -346,7 +404,7 @@ export function createFacilityScene(host, labelHost, onSelect) {
     envTarget.dispose(); renderer.dispose();
   }
   return {
-    scene, update, destroy, setView,
+    scene, update, destroy, setView, captureInspection,
     setThermal: value => { thermal = value; },
     select: value => { selected = value; },
     setPreciseBody: value => { body = value; },

@@ -18,6 +18,7 @@
       <div class="masthead-actions">
         <span class="simulation-badge"><i></i> 브라우저 시뮬레이션</span>
         <button id="help" class="quiet-button" data-icon="help">데모 안내</button>
+        <button id="telegramJump" class="outline-button" data-icon="send">텔레그램</button>
         <button id="report" class="outline-button" data-icon="report" disabled>대응 리포트</button>
       </div>
     </header>
@@ -62,6 +63,7 @@
               <strong id="assetName">냉각 순환 설비</strong>
               <div class="asset-reading"><span id="assetTemperature">38.4</span><small>°C</small><span class="reading-source">모델 온도</span></div>
               <div class="asset-focus-footer"><span>경보 기준 60°C</span><span class="sensor-dot"></span></div>
+              <button id="assetInspect" class="asset-inspect-button"><span data-icon="robot"></span>이 장비 점검 보내기</button>
             </div>
             <div class="scene-legend"><span><i class="legend-route"></i>현재 경로</span><span><i class="legend-goal"></i>점검 지점</span><span id="thermalLegend" hidden><i class="legend-heat"></i>예시 온도 분포</span></div>
             <span class="orbit-hint" id="orbitHint">드래그로 회전 · 설비를 눌러 상태 확인</span>
@@ -90,6 +92,7 @@
             <div class="role-heading"><span class="role-icon" data-icon="agent"></span><h3>Agent</h3><span class="engine-label" id="agentEngineLabel">규칙 기반</span></div>
             <p id="agentReason">센서 신호를 비교하고, 대응 순서와 점검 임무를 결정합니다.</p>
             <div class="role-footnote"><span class="small-dot"></span><span id="agentAction">온도 · 열화상 · 점검 이력</span></div>
+            <button id="agentPhoto" class="agent-photo" hidden><img id="agentPhotoImage" alt="현장 점검 사진" width="80" height="60"><span><strong>현장 사진 도착</strong><small id="agentPhotoFinding"></small><span>사진 크게 보기</span></span></button>
           </div>
           <div class="role-block physical-role">
             <div class="role-heading"><span class="role-icon" data-icon="robot"></span><h3>로봇·설비 제어</h3><span class="engine-label" id="controllerLabel">자율 제어</span></div>
@@ -104,6 +107,27 @@
           <div class="engine-loading" id="engineLoading" hidden><span class="loader"></span><span id="engineLoadingText">보행 정책 준비 중</span></div>
         </aside>
       </div>
+      <section class="inspection-panel" aria-labelledby="inspectionHeading">
+        <div class="inspection-dispatch">
+          <h2 id="inspectionHeading">Go1 자율 점검</h2>
+          <p>웹에서 장비를 지정해 이상 유무를 보고받습니다. 정상이면 자동 복귀하고, 이상이면 현장에서 복귀 지시를 기다립니다.</p>
+          <div class="inspection-inputs"><label>점검 장비<select id="inspectionTarget"></select></label><label>점검 환경<select id="inspectionProfile"><option value="current">현재 장비 상태</option><option value="normal">정상 예시</option><option value="heat">CH-02 과열 예시</option><option value="sensor">CH-02 센서 오류 예시</option></select></label></div>
+          <div class="inspection-dispatch-actions"><button id="inspectionStart" class="primary-button"><span data-icon="robot"></span><span id="inspectionStartLabel">CH-02 점검 보내기</span></button><span id="inspectionProfileHint">현재 모델·센서 상태를 그대로 점검합니다.</span></div>
+          <ol class="inspection-progress" aria-label="자율 점검 진행 단계"><li data-inspection-step="0">출동</li><li data-inspection-step="1">이동</li><li data-inspection-step="2">관측</li><li data-inspection-step="3">보고</li><li data-inspection-step="4">복귀</li></ol>
+        </div>
+        <div class="inspection-result" id="inspectionResult" data-finding="pending">
+          <div class="inspection-result-heading"><strong id="inspectionResultTarget">현장 점검 보고</strong><span id="inspectionVerdict" role="status">현장 관측 전</span></div>
+          <dl class="inspection-readings"><div><dt>온도 센서</dt><dd id="inspectionSensor">—</dd></div><div><dt>열화상</dt><dd id="inspectionThermal">—</dd></div><div><dt>관측 차이</dt><dd id="inspectionDifference">—</dd></div></dl>
+          <p id="inspectionOutcome" role="status">장비를 선택해 점검을 보내세요. 정상 판정이면 Go1이 자동으로 복귀합니다.</p>
+          <button id="inspectionReturn" class="outline-button" hidden><span data-icon="robot"></span>보고 확인 · 복귀 지시</button>
+          <p id="inspectionPhotoNotice" role="status" hidden></p>
+          <figure class="inspection-photo" id="inspectionPhoto" hidden>
+            <button id="inspectionPhotoOpen" class="inspection-photo-open" aria-label="현장 사진 크게 보기"><img id="inspectionPhotoImage" alt="가상 설비 점검 사진" width="1280" height="960"><span>사진 크게 보기</span></button>
+            <figcaption><span><strong>Go1 현장 카메라</strong><small id="inspectionPhotoState" role="status">관측 후 촬영</small></span><a id="inspectionPhotoDownload" download>사진 저장 ↓</a></figcaption>
+          </figure>
+          <small id="inspectionEvidenceNote">예시 판정 기준: 온도 60°C · 관측 차이 5°C / 점검 중 환기 조치 없음</small>
+        </div>
+      </section>
       <section class="evidence-grid">
         <div class="chart-panel">
           <div class="section-heading"><div><h2>조치가 만든 변화</h2><p>같은 이상에 대응했을 때와 대응하지 않았을 때</p></div><span class="chart-unit">CH-02 / °C</span></div>
@@ -126,10 +150,38 @@
           <ol id="eventList" class="event-list"><li class="event-invitation"><span data-icon="timeline"></span><div><strong>시설의 대응을 시작해보세요</strong><p>센서 관측부터 조치 확인까지, 실행한 근거가 이곳에 쌓입니다.</p></div></li></ol>
         </div>
       </section>
+      <section class="telegram-panel" id="telegramPanel" aria-labelledby="telegramHeading">
+        <div class="telegram-console">
+          <div class="telegram-heading"><div><h2 id="telegramHeading">Go1의 현장 보고</h2><p>로봇의 관측과 임무 결과를 텔레그램으로 받아보세요.</p></div><span class="telegram-state" id="telegramState" role="status" data-state="offline">연결 확인 중</span></div>
+          <div class="telegram-identity">
+            <div class="go1-emblem" aria-hidden="true"><svg viewBox="0 0 92 66" fill="none"><path d="M15 20h48l10 9-7 8H23l-8-8V20Z" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/><path d="m24 37-7 13 8 10m11-23 7 12-8 11m25-23-5 13 9 10m-6-23 12 12-5 11M73 29h9m-59-9V12h14v8" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><circle cx="65" cy="26" r="2" fill="currentColor"/></svg></div>
+            <div><strong id="telegramDestination">Hermes 기본 대화방 연결</strong><p id="telegramDetail">받는 봇과 대화방을 확인합니다.</p></div>
+            <button id="telegramRefresh" class="icon-button" aria-label="텔레그램 연결 다시 확인" title="연결 다시 확인" data-icon="reset"></button>
+          </div>
+          <label class="telegram-auto"><input type="checkbox" id="telegramAuto" disabled /><span><strong>임무 진행 자동 보고</strong><small>이후 경보·판단·현장 점검·조치·복귀를 보냅니다.</small></span></label>
+          <div class="remote-command-console">
+            <div class="remote-heading"><strong>음성으로 고원에게 지시</strong><span id="remoteState" class="telegram-state" data-state="offline">명령 받기 꺼짐</span></div>
+            <label class="remote-enable"><input type="checkbox" id="remoteReceive" disabled /><span>스마트폰 명령 받기<small>이 화면의 Go1이 이동·점검하고 사진과 판정을 전송합니다.</small></span></label>
+            <label class="remote-profile">점검 환경<select id="remoteProfile"><option value="heat">CH-02 과열 예시</option><option value="sensor">CH-02 센서 오류 예시</option><option value="normal">정상 장비 예시</option><option value="current">현재 모델 상태</option></select></label>
+            <div class="remote-examples"><code>고원아, 냉각 설비 점검해줘</code><code>고원아, 공조 유닛 점검해줘</code><code>고원아, 상태 알려줘</code><code>고원아, 정지해줘</code><code>고원아, 복귀해줘</code></div>
+            <p class="telegram-preview-note">기존 Hermes 대화방의 마이크로 음성 메시지를 보내세요. 고원 → Go1로 연결하며, 인식 문장을 먼저 보여줍니다. 점검 후 가상 설비 사진·온도·판정을 자동 전송합니다. Go1 텍스트 명령도 사용할 수 있습니다.</p>
+            <p id="remoteMission" role="status">명령 받기를 켜면 기존 Hermes 대화방에서 지시할 수 있습니다. 노트북 화면을 열어두세요.</p>
+          </div>
+          <div class="telegram-compose"><label><span class="sr-only">Go1 보고 종류</span><select id="telegramKind"><option value="status">현재 상태</option><option value="report">대응 요약</option></select></label><button id="telegramSend" class="primary-button" disabled><span data-icon="send"></span><span id="telegramSendLabel">현재 상태 보내기</span></button><button id="telegramTest" class="outline-button" disabled>연결 테스트</button></div>
+          <div class="telegram-log-heading"><span>전송 기록</span><span id="telegramCount">0개 전송</span></div>
+          <ol id="telegramHistory" class="telegram-history" aria-live="polite"><li class="telegram-empty">메시지를 보내면 전송 결과가 이곳에 표시됩니다.</li></ol>
+        </div>
+        <div class="telegram-preview-wrap"><div class="telegram-preview-title"><span>텔레그램 메시지 미리보기</span><span>가상 Go1 R-01</span></div><div class="telegram-bubble"><span class="telegram-sender">Go1의 시설 점검 보고</span><pre id="telegramPreview"></pre><span class="telegram-preview-note">현재 시뮬레이션 관측으로 작성한 보고</span></div></div>
+      </section>
       <footer class="page-footer"><span>Facility AI Twin · Interactive research prototype</span><button id="aboutModels">모델과 공개 자산 안내</button><span id="runIdentifier">실제 시설 연동 없음</span></footer>
     </main>
     <div id="toast" class="toast" role="status" hidden></div>
     <button id="mobileStart" class="mobile-start primary-button"><span data-icon="play"></span><span id="mobileStartLabel">설비 과열 시나리오 실행</span></button>
+    <dialog id="photoDialog" class="photo-dialog" aria-labelledby="photoDialogTitle">
+      <div class="dialog-heading"><h2 id="photoDialogTitle">현장 사진</h2><button id="photoDialogClose" class="icon-button" aria-label="사진 창 닫기" data-icon="close"></button></div>
+      <img id="photoDialogImage" alt="가상 현장 사진" width="1280" height="960">
+      <div class="photo-dialog-footer"><p id="photoDialogCaption"></p><a id="photoDialogDownload" download>사진 저장 ↓</a></div>
+    </dialog>
     <dialog id="infoDialog">
       <div class="dialog-heading"><h2 id="dialogTitle">데모 안내</h2><button id="closeDialog" class="icon-button" aria-label="창 닫기" data-icon="close"></button></div>
       <div id="dialogContent"></div>

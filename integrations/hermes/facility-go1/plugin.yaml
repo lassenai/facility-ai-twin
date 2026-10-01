@@ -1,0 +1,8 @@
+name: facility-go1
+version: 1.1.0
+description: Routes authorized Telegram Go1 commands and Korean voice commands addressed to 고원 through Hermes STT to the local Facility AI Twin bridge.
+author: Facility AI Twin
+hooks:
+  - pre_gateway_dispatch
+provides_hooks:
+  - pre_gateway_dispatch

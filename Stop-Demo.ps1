@@ -6,7 +6,10 @@ foreach ($record in $records) {
     $owned = Get-Process -Id $record.Pid -ErrorAction SilentlyContinue
     if (-not $owned) { continue }
     $command = Get-CimInstance Win32_Process -Filter "ProcessId = $($record.Pid)"
-    if ($owned.StartTime.ToUniversalTime().ToString('o') -eq $record.Started -and $command.CommandLine.Contains($record.Argument)) {
+    # Recent PowerShell versions deserialize ISO timestamps as DateTime;
+    # compare instants so ownership checks preserve the recorded precision.
+    $recordedStart = if ($record.Started -is [datetime]) { $record.Started.ToUniversalTime() } else { [datetime]::Parse($record.Started, [cultureinfo]::InvariantCulture, [System.Globalization.DateTimeStyles]::RoundtripKind).ToUniversalTime() }
+    if ($owned.StartTime.ToUniversalTime() -eq $recordedStart -and $command.CommandLine.Contains($record.Argument)) {
         Stop-Process -Id $record.Pid
     }
 }

@@ -8,12 +8,14 @@ export const STAGES = {
   plan: '대응 계획 수립',
   navigate: '로봇 현장 점검',
   inspect: '관측 결과 확인',
+  await_review: '현장 보고 · 복귀 지시 대기',
   cool: '환기 조치 실행',
   verify: '조치 효과 검증',
   return: '로봇 복귀',
   complete: '대응 종료',
 };
 export const SCENARIOS = {
+  inspection: { name: 'Go1 장비 점검', summary: '지정 장비로 이동해 온도·열화상을 확인하고 이상 유무를 보고합니다.' },
   heat: { name: '설비 과열', summary: '온도 상승을 확인하고, 로봇 점검과 보조 환기로 대응합니다.' },
   sensor: { name: '센서 오류', summary: '온도 신호와 열화상이 다를 때, 불필요한 조치를 피합니다.' },
   link: { name: '통신 단절', summary: '점검 도중 연결이 끊기면 정지하고 복구를 기다립니다.' },
@@ -38,6 +40,7 @@ export class Simulation {
       peak: 38.4, sensorConfirmed: false, linkInjected: false,
       safeStops: 0, lowBatteryNoted: false, routeFailed: false,
       agentMode: 'rules', agentPending: false, agentRequested: false, agentDecision: null, agentError: null,
+      physicsError: false,
     };
     this.sampleAt = -1; this.lastPose = null; this.scanAt = null;
   }
@@ -136,6 +139,7 @@ export class Simulation {
   }
 
   physicsFailure(detail) {
+    this.s.physicsError = true;
     this.s.paused = true; this.s.robot.speed = 0;
     this.s.next = '물리 실행을 중지했습니다. 초기화 후 다시 시작하세요.';
     this.event('physical', '물리 실행 중지', detail, 'stop_robot', { requirement: 'REQ-04' });

@@ -1,9 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createBridge, validateSnapshot, parseDecision } from '../bridge/server.js';
+import { createBridge, startBridge, validateSnapshot, parseDecision } from '../bridge/server.js';
 import { observation } from '../src/decision.js';
 import { Simulation } from '../src/simulation.js';
 import { once } from 'node:events';
+import http from 'node:http';
 
 test('bridge rejects injected fields and modified constraints', () => {
   const snapshot = observation(new Simulation().s);
@@ -25,6 +26,7 @@ test('HTTP bridge authenticates, validates, limits concurrent CLI jobs and rejec
   const denied = await fetch(url + '/agent/health', { headers: { Origin: 'https://example.com' } });
   assert.equal(denied.status, 403);
   const health = await (await fetch(url + '/agent/health')).json();
+  assert.equal(health.service, 'facility-ai-twin-agent-bridge');
   assert.equal(health.engines.codex, true);
   assert.equal((await fetch(url + '/agent/jobs', { method: 'POST' })).status, 403);
   assert.equal((await fetch(url + '/agent/jobs', { method: 'POST', headers: { 'X-Twin-Token': 'Ä'.repeat(64) } })).status, 403);
@@ -39,4 +41,30 @@ test('HTTP bridge authenticates, validates, limits concurrent CLI jobs and rejec
   await new Promise(resolve => setTimeout(resolve, 10));
   const result = await (await fetch(url + '/agent/jobs/' + job.id, { headers })).json();
   assert.equal(result.status, 'complete'); assert.equal(result.decision.action, 'inspect_sensor');
+});
+
+test('starting twice reuses the healthy bridge without interrupting its server', async t => {
+  const first = await startBridge({ port: 0, paths: { codex: 'fixture', hermes: null } });
+  t.after(() => new Promise(resolve => first.server.close(resolve)));
+  assert.equal(first.reused, false);
+  const port = first.server.address().port;
+  const before = await (await fetch('http://127.0.0.1:' + port + '/agent/health')).json();
+  const second = await startBridge({ port });
+  assert.equal(second.reused, true);
+  assert.equal(second.server, null);
+  const after = await (await fetch('http://127.0.0.1:' + port + '/agent/health')).json();
+  assert.equal(after.token, before.token);
+  assert.equal(first.server.listening, true);
+});
+
+test('an unrelated service on the bridge port remains running and causes a clear error', async t => {
+  const other = http.createServer((req, res) => {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ status: 'ok' }));
+  });
+  other.listen(0, '127.0.0.1'); await once(other, 'listening');
+  t.after(() => new Promise(resolve => other.close(resolve)));
+  const port = other.address().port;
+  await assert.rejects(startBridge({ port }), error => error.code === 'EADDRINUSE' && error.message.includes(String(port)) && error.message.includes('정상 응답을 확인하지 못했습니다'));
+  assert.equal(other.listening, true);
 });
