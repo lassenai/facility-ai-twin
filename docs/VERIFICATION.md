@@ -140,3 +140,14 @@ npm run build 성공. /facility-ai-twin/ 경로를 사용한 별도 정적 서�
 - 개발용 상태 변경 전역이 배포 빌드에서 노출되지 않음을 확인.
 
 Vite는 Three.js 청크 크기와 MuJoCo의 Node 전용 module 분기에 관한 경고를 출력합니다. 확인한 브라우저 실행에서는 관련 오류가 발생하지 않았습니다. 실제 모바일 기기의 프레임율, Safari·Firefox, 현장 장비와 학교 서버 연결은 별도 검증 항목입니다.
+
+## GitHub Pages 공개 배포 · 2026-10-01
+
+- 사용자가 만든 [lassenai/facility-ai-twin](https://github.com/lassenai/facility-ai-twin)에 기존 MVP와 Go1 점검·사진·Hermes 음성 명령 확장을 업로드. GitHub Pages의 게시 소스를 GitHub Actions로 설정.
+- [최초 배포 실행](https://github.com/lassenai/facility-ai-twin/actions/runs/36844801060)에서 Node 자동 테스트 54개, Vite 빌드, Pages 아티팩트 업로드와 배포 성공. 커밋 `1660d924bfbf71e616416601b9e9775193ef1632`가 배포됨.
+- 공개 주소 **https://lassenai.github.io/facility-ai-twin/** 에서 실제 Edge 브라우저로 3D 표시, 규칙 기반 과열 대응·현장 사진 보고·도킹 복귀 확인. 촬영 관측값 84.9°C를 조치 후 현재 온도와 구분해 유지.
+- 390×844 터치 모바일 화면에서 PU-01 정상 점검, 정상 판정 후 자동 복귀, 사진 확대·1280×960 JPEG 다운로드 확인. 가로 넘침 없음. 경량 모드는 MuJoCo·ONNX 자산을 미리 다운로드하지 않음.
+- 공개 서버의 Go1 XML·메시·ONNX 정책·WASM과 한국어 폰트가 하위 배포 경로에서 로드됨. 개발용 `window.__twin` 전역 없음.
+- 공개 페이지의 정밀 Go1 모드로 CH-02 정상 점검·사진 촬영·자동 복귀를 실행하고 다운로드한 실행 리포트에서 완료·정상 판정 확인. 시뮬레이션 39.26초, 이동 21.53m, 정책 추론 1,963회. GPU 없는 소프트웨어 렌더러 검증에서 실제 경과 시간은 약 89초이며 실제 스마트폰 성능을 나타내지 않음.
+- 공개 페이지의 실제 Telegram 전송·명령 수신은 비활성화되며 로컬 브리지 요청 없이 실행됨. 봇 설정·실행 로그·QA 파일·의존성 폴더·로컬 환경 파일은 공개 저장소에서 제외.
+- 모바일 검증은 브라우저의 터치·화면 에뮬레이션을 사용함. 실제 스마트폰 하드웨어의 프레임율과 iOS Safari 검증은 별도임.
